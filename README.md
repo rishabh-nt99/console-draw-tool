@@ -20,8 +20,7 @@ A command-line drawing tool that allows users to create shapes and fill areas on
 | `R` | Draw a rectangle | `R 14 1 18 3 o` |
 | `B` | Fill an area | `B 10 3 o` |
 | `Q` | Quit the program | `Q` |
-|---------------------------------|
-|Additional Commands Implemented|
+|Additional Commands Implemented|-|-|
 | `E` | Clear the canvas | `E` |
 
 ## Assumptions
@@ -51,7 +50,9 @@ A command-line drawing tool that allows users to create shapes and fill areas on
    - Canvas can be cleared and recreated
 
 ## Running Program
-
+```bash
+run Draw.exe
+```
 Draw.exe is added to the root directory for easily running the program. 
 Generated using pyinstaller
 
@@ -59,15 +60,10 @@ Generated using pyinstaller
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/rishabh-nt99/console-draw-tool.git
 ```
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Run the program:
+2. Run the program:
 ```bash
 python main.py
 ```
