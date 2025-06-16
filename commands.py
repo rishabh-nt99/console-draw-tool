@@ -2,9 +2,14 @@ from abc import ABC, abstractmethod
 from canvas import Canvas
 import sys
 
+from history_stack import HistoryStack
+
+
 class Command(ABC):
     def __init__(self, canvas: Canvas):
         self.canvas = canvas
+        self.history_stack = HistoryStack()
+
     @abstractmethod
     def execute(self, input: list[str]):
         pass
@@ -22,6 +27,8 @@ class Command(ABC):
         if(self.validate(input)):
             self.execute(input)
             self.canvas.print_canvas()
+
+
 
 class CreateCanvasCmd(Command):
 
@@ -48,27 +55,97 @@ class CreateCanvasCmd(Command):
             "                                             |  Example: C 20 4\n"
             "                                             | "
         )
+    
 
 class LineCmd(Command):
     def execute(self, input: list[str]):
         x1, y1 = int(input[1]), int(input[2])
         x2, y2 = int(input[3]), int(input[4])
         char = input[5]
-        
+        current_changes = []
+        dx, dy = x2-x1, y2-y1
 
-        if x1 == x2:  # Vertical line
+        # M<1 = negative diagonal
+        # M>1 = positive diagonal
+        # M=0 horizontal Line
+        # M=inf then vertical line
+        if dx!=0:
+            m = dy//dx
+        else:
+            m=10000
+
+        if m==10000:
             for y in range(min(y1, y2), max(y1, y2) + 1):
+                old_char = self.canvas.state[y][x1]
                 self.canvas.state[y][x1] = char
-        elif y1 == y2:  # Horizontal line
-            for x in range(min(x1, x2), max(x1, x2) + 1):
+                current_changes.append((x1, y, old_char, char))
+        elif m==1 or m==-1: 
+            x=x1
+            y=y1
+            
+            sx= 1 if x2>x1 else -1
+            sy=1  if y2>y1 else -1
+            
+            for i in range (abs(dx+1)):
+                old_char = self.canvas.state[y][x]
+                self.canvas.state[y][x]=char
+                current_changes.append((x, y, old_char, char))
+                y+=sy
+                x+=sx
+        elif m==0:
+             for x in range(min(x1, x2), max(x1, x2) + 1):
+                old_char = self.canvas.state[y1][x]
                 self.canvas.state[y1][x] = char
-        else:  # L-shaped line (horizontal then vertical)
-            for x in range(min(x1, x2), max(x1, x2) + 1):
-                self.canvas.state[y1][x] = char
-            y_start = min(y1, y2) if y2 < y1 else y1 + 1
-            y_end = max(y1, y2) + 1
-            for y in range(y_start, y_end):
-                self.canvas.state[y][x2] = char
+                current_changes.append((x, y1, old_char, char))
+        else:
+            print("Not a straight line")
+ 
+        # elif m==0:
+        #     old_char = self.canvas.state[y1][x]
+        #     self.canvas.state[y1][x] = char
+        #     current_changes.append((x, y1, old_char, char))
+        
+        # elif m<0:
+        #     x= max(x1,x2)   
+        #     for y in range(min(y1,y2), max(y1,y2)+1):
+        #         self.canvas.state[y][x]=char
+        #         x-=1
+
+        # else
+        # if abs(dx)==abs(dy): #We can draw a perfect diagonal
+        #     m = dy/dx
+        #     if m>0:
+        #         for x in range(min(x1,x2), max(x1,x2)+1):
+        #             self.canvas.state[x][x]=char 
+            
+        #     else:
+        #        x= max(x1,x2)   
+        #        for y in range(min(y1,y2), max(y1,y2)+1):
+        #             self.canvas.state[y][x]=char
+        #             x-=1
+        # elif x1 == x2:  # Vertical line
+        #     for y in range(min(y1, y2), max(y1, y2) + 1):
+        #         old_char = self.canvas.state[y][x1]
+        #         self.canvas.state[y][x1] = char
+        #         current_changes.append((x1, y, old_char, char))
+        # elif y1 == y2:  # Horizontal line
+        #     for x in range(min(x1, x2), max(x1, x2) + 1):
+        #         old_char = self.canvas.state[y1][x]
+        #         self.canvas.state[y1][x] = char
+        #         current_changes.append((x, y1, old_char, char))
+        # else:  # L-shaped line (horizontal then vertical)
+        #     for x in range(min(x1, x2), max(x1, x2) + 1):
+        #         old_char = self.canvas.state[y1][x]
+        #         self.canvas.state[y1][x] = char
+        #         current_changes.append((x, y1, old_char, char))
+        #     y_start = min(y1, y2) if y2 < y1 else y1 + 1
+        #     y_end = max(y1, y2) + 1
+        #     for y in range(y_start, y_end):
+        #         old_char = self.canvas.state[y][x2]
+        #         self.canvas.state[y][x2] = char
+        #         current_changes.append((x2, y, old_char, char))
+        
+        self.history_stack.add_to_undo(current_changes)
     
     def validate(self, input: list[str]) -> bool:
         if not self.canvas._initialized:
@@ -250,4 +327,25 @@ class EmptyCommand(Command):
     def get_help_text(self) -> str:
         return(
             "                                         |  Clear the canvas\n"
+        )
+    
+
+class UndoCommand(Command):
+    def execute(self, input: list[str]):
+        last_changes = self.history_stack.undo_stack.pop()
+        if last_changes:
+            for x,y,old_char, new_char in last_changes:
+                self.canvas.state[y][x] = old_char
+        
+        self.history_stack.add_to_redo(last_changes)
+    
+    def validate(self, input: list[str]) -> bool:
+        if len(input)>1:
+            print("Too many arguments. Ignoring extra characters")
+        
+        return True
+    
+    def get_help_text(self) -> str:
+        return(
+            "                                         |  Undo the last command\n"
         )

@@ -1,15 +1,12 @@
 # tests/test_commands.py
 import unittest
-from commands import (
-    CreateCanvasCmd, LineCmd, RectangleCmd, 
-    BucketFillCmd, QuitCmd, EmptyCommand
-)
+from commands import *
 from canvas import Canvas
 
 class TestCommands(unittest.TestCase):
     def setUp(self):
         self.canvas = Canvas()
-        self.canvas.initialize_canvas(5, 5)
+        self.canvas.initialize_canvas(50, 50)
 
     def tearDown(self):
         # Clear canvas state between tests
@@ -39,6 +36,24 @@ class TestCommands(unittest.TestCase):
         cmd.process(["L", "1", "-1", "3", "1", "x"])
         cmd.process(["L", "1", "1", "6", "1", "x"])
         cmd.process(["L", "1", "1", "1", "6", "x"])
+
+    def test_diagonal_line_command(self):
+        cmd = LineCmd(self.canvas)
+        cmd.process(["L", "2", "2", "8", "8", "x"])
+        for x in range (2,2) :
+            for y in range(8, 8):
+                cell = self.canvas.state[y][x]
+                self.assertEqual(cell, "x")
+        
+        #Not Diagonal Line
+        cmd.process(["L", "10", "10", "10", "12", "x"])
+        self.assertNotEqual(self.canvas.state[11][11], "x")
+
+        cmd.process(["L", "2", "10", "10", "2", "x"])
+        self.assertEqual(self.canvas.state[10][2], "x")
+        self.assertEqual(self.canvas.state[9][3], "x")
+        self.assertEqual(self.canvas.state[8][4], "x")
+        self.assertEqual(self.canvas.state[2][10], "x")
 
     def test_rectangle_command(self):
         cmd = RectangleCmd(self.canvas)
@@ -96,4 +111,18 @@ class TestCommands(unittest.TestCase):
         # Verify canvas is empty
         for row in self.canvas.state:
             for cell in row:
+                self.assertEqual(cell, ' ')
+
+
+    def test_undo_command(self):
+        cmd = UndoCommand(self.canvas)
+
+        #Fill Canvas
+        line_cmd = LineCmd(self.canvas)
+        line_cmd.process(["L", "1", "1", "3", "1", "x"])
+
+        cmd.process(["U"])
+        for x in range (1,4) :
+            for y in range(1, 2):
+                cell = self.canvas.state[y][x]
                 self.assertEqual(cell, ' ')

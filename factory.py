@@ -11,6 +11,7 @@ class CommandFactory:
       "B": BucketFillCmd,
       "Q": QuitCmd,
       "E": EmptyCommand,
+      "U": UndoCommand
     }
     def get_command(self, input):
         try:
